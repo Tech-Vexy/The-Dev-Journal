@@ -1,173 +1,217 @@
-import { getAllSubscribers, getSubscriberStats } from "@/lib/newsletter"
-import { format } from "date-fns"
-import { sendNewsletter } from "@/app/actions/newsletter"
+"use client"
+
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Users, CheckCircle, XCircle, Mail } from "lucide-react"
-import Link from "next/link"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
-import { unsubscribeFromNewsletter } from "@/app/actions/newsletter"
+import { sendNewsletter } from "@/app/actions/newsletter"
+import { useToast } from "@/components/ui/use-toast"
+import { Loader2, Send, Users } from "lucide-react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
-export default async function NewsletterAdminPage() {
-    const subscribers = await getAllSubscribers()
-    const stats = await getSubscriberStats()
+export default function NewsletterAdminPage() {
+    const [isSubmitting, setIsSubmitting] = useState(false)
+    const [subscriberCount, setSubscriberCount] = useState<number | null>(null)
+    const [isLoading, setIsLoading] = useState(true)
+    const { toast } = useToast()
 
-    const confirmedSubscribers = subscribers.filter((sub) => sub.confirmed)
-    const unconfirmedSubscribers = subscribers.filter((sub) => !sub.confirmed)
+    useEffect(() => {
+        // Fetch subscriber count
+        fetch("/api/newsletter/subscribers/count")
+            .then((res) => res.json())
+            .then((data) => {
+                setSubscriberCount(data.count)
+                setIsLoading(false)
+            })
+            .catch((err) => {
+                console.error("Error fetching subscriber count:", err)
+                setIsLoading(false)
+            })
+    }, [])
+
+    async function handleSubmit(formData: FormData) {
+        setIsSubmitting(true)
+
+        try {
+            const result = await sendNewsletter(formData)
+
+            if (result.success) {
+                toast({
+                    title: "Success",
+                    description: result.message,
+                })
+                // Reset the form
+                document.getElementById("newsletter-form")?.reset()
+            } else {
+                toast({
+                    title: "Error",
+                    description: result.message,
+                    variant: "destructive",
+                })
+            }
+        } catch (error: any) {
+            toast({
+                title: "Error",
+                description: error.message || "Failed to send newsletter",
+                variant: "destructive",
+            })
+        } finally {
+            setIsSubmitting(false)
+        }
+    }
 
     return (
-        <div className="container mx-auto px-4 py-8">
-            <div className="flex justify-between items-center mb-8">
-                <h1 className="text-3xl font-bold">Newsletter Management</h1>
-                <Button asChild variant="outline">
-                    <Link href="/admin">Back to Admin</Link>
-                </Button>
-            </div>
+        <div className="max-w-3xl mx-auto">
+            <h1>Newsletter Management</h1>
+            <p className="text-muted-foreground mb-6">Manage your newsletter subscribers and send campaigns.</p>
 
-            <div className="grid gap-6 md:grid-cols-3 mb-8">
+            <div className="mb-8">
                 <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">Total Subscribers</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="flex items-center justify-between">
-                            <div className="text-2xl font-bold">{stats.total}</div>
-                            <Users className="h-5 w-5 text-muted-foreground" />
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">Confirmed Subscribers</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="flex items-center justify-between">
-                            <div className="text-2xl font-bold">{stats.confirmed}</div>
-                            <CheckCircle className="h-5 w-5 text-green-500" />
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">Pending Confirmations</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="flex items-center justify-between">
-                            <div className="text-2xl font-bold">{stats.unconfirmed}</div>
-                            <XCircle className="h-5 w-5 text-amber-500" />
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-
-            <div className="grid gap-6 md:grid-cols-2">
-                <Card className="md:col-span-1">
                     <CardHeader>
-                        <CardTitle>Send Newsletter</CardTitle>
-                        <CardDescription>Compose and send a newsletter to all confirmed subscribers.</CardDescription>
+                        <CardTitle>Subscriber Stats</CardTitle>
+                        <CardDescription>Overview of your newsletter subscribers</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <form action={sendNewsletter} className="space-y-4">
-                            <div className="space-y-2">
-                                <label htmlFor="subject" className="text-sm font-medium">
-                                    Subject
-                                </label>
-                                <Input id="subject" name="subject" placeholder="Newsletter subject" required />
+                        {isLoading ? (
+                            <div className="flex items-center justify-center py-4">
+                                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                             </div>
-
-                            <div className="space-y-2">
-                                <label htmlFor="content" className="text-sm font-medium">
-                                    Content (HTML supported)
-                                </label>
-                                <Textarea
-                                    id="content"
-                                    name="content"
-                                    placeholder="Write your newsletter content here..."
-                                    className="min-h-[200px]"
-                                    required
-                                />
+                        ) : (
+                            <div className="flex items-center gap-2">
+                                <Users className="h-5 w-5 text-primary" />
+                                <span className="text-xl font-semibold">{subscriberCount}</span>
+                                <span className="text-muted-foreground">confirmed subscribers</span>
                             </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
 
-                            <Button type="submit" className="w-full">
-                                <Mail className="h-4 w-4 mr-2" />
-                                Send Newsletter
-                            </Button>
+            <Tabs defaultValue="compose">
+                <TabsList className="mb-4">
+                    <TabsTrigger value="compose">Compose Newsletter</TabsTrigger>
+                    <TabsTrigger value="templates">Templates</TabsTrigger>
+                </TabsList>
 
-                            <p className="text-xs text-muted-foreground text-center">
-                                This will send to {stats.confirmed} confirmed subscribers.
-                            </p>
+                <TabsContent value="compose">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Send Newsletter</CardTitle>
+                            <CardDescription>Compose and send a newsletter to all confirmed subscribers.</CardDescription>
+                        </CardHeader>
+                        <form id="newsletter-form" action={handleSubmit}>
+                            <CardContent className="space-y-4">
+                                <div className="space-y-2">
+                                    <label htmlFor="subject" className="text-sm font-medium">
+                                        Subject
+                                    </label>
+                                    <Input id="subject" name="subject" placeholder="Newsletter subject" required />
+                                </div>
+                                <div className="space-y-2">
+                                    <label htmlFor="content" className="text-sm font-medium">
+                                        Content (HTML)
+                                    </label>
+                                    <Textarea
+                                        id="content"
+                                        name="content"
+                                        placeholder="<h1>Newsletter Content</h1><p>Write your newsletter content here...</p>"
+                                        className="min-h-[300px] font-mono"
+                                        required
+                                    />
+                                    <p className="text-xs text-muted-foreground">You can use HTML tags to format your newsletter.</p>
+                                </div>
+                            </CardContent>
+                            <CardFooter className="flex justify-between">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => {
+                                        const textarea = document.getElementById("content") as HTMLTextAreaElement
+                                        textarea.value = getDefaultTemplate()
+                                    }}
+                                >
+                                    Load Template
+                                </Button>
+                                <Button type="submit" disabled={isSubmitting}>
+                                    {isSubmitting ? (
+                                        <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            Sending...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Send className="mr-2 h-4 w-4" />
+                                            Send Newsletter
+                                        </>
+                                    )}
+                                </Button>
+                            </CardFooter>
                         </form>
-                    </CardContent>
-                </Card>
+                    </Card>
+                </TabsContent>
 
-                <Card className="md:col-span-1">
-                    <CardHeader>
-                        <CardTitle>Subscriber List</CardTitle>
-                        <CardDescription>Manage your newsletter subscribers.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Tabs defaultValue="confirmed">
-                            <TabsList className="mb-4">
-                                <TabsTrigger value="confirmed">Confirmed ({confirmedSubscribers.length})</TabsTrigger>
-                                <TabsTrigger value="unconfirmed">Pending ({unconfirmedSubscribers.length})</TabsTrigger>
-                            </TabsList>
+                <TabsContent value="templates">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Email Templates</CardTitle>
+                            <CardDescription>Pre-designed templates for your newsletters</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Alert>
+                                <AlertTitle>Basic Template</AlertTitle>
+                                <AlertDescription>A simple template with header, content section, and footer.</AlertDescription>
+                            </Alert>
+                            <div className="mt-4">
+                                <Button
+                                    onClick={() => {
+                                        const textarea = document.getElementById("content") as HTMLTextAreaElement
+                                        textarea.value = getDefaultTemplate()
 
-                            <TabsContent value="confirmed" className="space-y-4">
-                                {confirmedSubscribers.length === 0 ? (
-                                    <p className="text-center text-muted-foreground py-8">No confirmed subscribers yet.</p>
-                                ) : (
-                                    <div className="max-h-[400px] overflow-y-auto space-y-2">
-                                        {confirmedSubscribers.map((subscriber) => (
-                                            <div key={subscriber.id} className="flex items-center justify-between p-3 bg-muted rounded-md">
-                                                <div>
-                                                    <p className="font-medium">{subscriber.email}</p>
-                                                    <p className="text-xs text-muted-foreground">
-                                                        Subscribed on {format(new Date(subscriber.subscribedAt), "MMM d, yyyy")}
-                                                    </p>
-                                                </div>
-                                                <form action={unsubscribeFromNewsletter.bind(null, subscriber.id)}>
-                                                    <Button type="submit" variant="ghost" size="sm" className="text-red-500 hover:text-red-700">
-                                                        Remove
-                                                    </Button>
-                                                </form>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </TabsContent>
-
-                            <TabsContent value="unconfirmed" className="space-y-4">
-                                {unconfirmedSubscribers.length === 0 ? (
-                                    <p className="text-center text-muted-foreground py-8">No pending subscribers.</p>
-                                ) : (
-                                    <div className="max-h-[400px] overflow-y-auto space-y-2">
-                                        {unconfirmedSubscribers.map((subscriber) => (
-                                            <div key={subscriber.id} className="flex items-center justify-between p-3 bg-muted rounded-md">
-                                                <div>
-                                                    <p className="font-medium">{subscriber.email}</p>
-                                                    <p className="text-xs text-muted-foreground">
-                                                        Requested on {format(new Date(subscriber.subscribedAt), "MMM d, yyyy")}
-                                                    </p>
-                                                </div>
-                                                <div className="flex items-center">
-                          <span className="text-xs bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 px-2 py-1 rounded">
-                            Pending confirmation
-                          </span>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </TabsContent>
-                        </Tabs>
-                    </CardContent>
-                </Card>
-            </div>
+                                        // Switch to compose tab
+                                        const composeTab = document.querySelector(
+                                            '[data-state="inactive"][value="compose"]',
+                                        ) as HTMLButtonElement
+                                        if (composeTab) composeTab.click()
+                                    }}
+                                >
+                                    Use Template
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
         </div>
     )
+}
+
+function getDefaultTemplate() {
+    return `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+  <div style="background-color: #4F46E5; padding: 20px; text-align: center;">
+    <h1 style="color: white; margin: 0;">DevBlog Newsletter</h1>
+  </div>
+  
+  <div style="padding: 20px;">
+    <h2>Hello Subscribers!</h2>
+    <p>Here are our latest articles and updates:</p>
+    
+    <div style="margin: 20px 0; padding: 15px; border: 1px solid #eaeaea; border-radius: 5px;">
+      <h3 style="margin-top: 0;">Article Title</h3>
+      <p>Brief description of the article goes here...</p>
+      <a href="#" style="color: #4F46E5; text-decoration: none;">Read more →</a>
+    </div>
+    
+    <div style="margin: 20px 0; padding: 15px; border: 1px solid #eaeaea; border-radius: 5px;">
+      <h3 style="margin-top: 0;">Another Article Title</h3>
+      <p>Brief description of another article goes here...</p>
+      <a href="#" style="color: #4F46E5; text-decoration: none;">Read more →</a>
+    </div>
+    
+    <p>Thanks for subscribing to our newsletter!</p>
+    <p>The Dev Journal Team</p>
+  </div>
+</div>`
 }
 
