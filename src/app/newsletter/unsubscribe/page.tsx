@@ -1,18 +1,17 @@
-import { confirmNewsletterSubscription } from "@/app/actions/newsletter"
+import { unsubscribeFromNewsletter } from "@/app/actions/newsletter"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { CheckCircle, XCircle } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
-export default async function ConfirmNewsletterPage({
-                                                        searchParams,
-                                                    }: {
-    searchParams: { token?: string; email?: string }
+export default async function UnsubscribeNewsletterPage({
+                                                            searchParams,
+                                                        }: {
+    searchParams: { email?: string }
 }) {
-    const token = searchParams.token
     const email = searchParams.email
 
-    if (!token || !email) {
+    if (!email) {
         return (
             <div className="container max-w-md mx-auto py-12">
                 <Card>
@@ -23,9 +22,7 @@ export default async function ConfirmNewsletterPage({
                         <div className="flex justify-center mb-4">
                             <XCircle className="h-12 w-12 text-red-500" />
                         </div>
-                        <CardDescription className="text-base mb-6">
-                            The confirmation link is invalid or has expired.
-                        </CardDescription>
+                        <CardDescription className="text-base mb-6">The unsubscribe link is invalid.</CardDescription>
                         <Button asChild>
                             <Link href="/">Return to Home</Link>
                         </Button>
@@ -35,14 +32,14 @@ export default async function ConfirmNewsletterPage({
         )
     }
 
-    const result = await confirmNewsletterSubscription(token)
+    const result = await unsubscribeFromNewsletter(email)
 
     return (
         <div className="container max-w-md mx-auto py-12">
             <Card>
                 <CardHeader>
                     <CardTitle className="text-center">
-                        {result.success ? "Subscription Confirmed" : "Confirmation Failed"}
+                        {result.success ? "Unsubscribed Successfully" : "Unsubscribe Failed"}
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="text-center">

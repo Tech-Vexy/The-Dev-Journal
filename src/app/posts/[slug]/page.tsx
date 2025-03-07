@@ -19,6 +19,7 @@ import Link from "next/link"
 import CopyButton from "@/components/copy-button"
 import CategoryBadge from "@/components/category-badge"
 import AuthorProfile from "@/components/author-profile"
+import PostReactions from "@/components/post-reactions"
 
 export async function generateStaticParams() {
   const posts = await getAllPosts()
@@ -39,8 +40,14 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 }
 
 export default async function PostPage({ params }: { params: { slug: string } }) {
-  const post = await getPostBySlug(params.slug)
-  const comments = await getComments(params.slug)
+  // Ensure params is fully resolved before using it
+  const slug = params?.slug
+  if (!slug) {
+    notFound()
+  }
+
+  const post = await getPostBySlug(slug)
+  const comments = await getComments(slug)
   const allPosts = await getAllPosts()
 
   if (!post) {
@@ -50,7 +57,7 @@ export default async function PostPage({ params }: { params: { slug: string } })
   const readingTime = calculateReadingTime(post.content?.value || "")
   const relatedPosts = allPosts.filter((p) => p.slug !== post.slug).slice(0, 3)
 
-  const url = `${process.env.NEXT_PUBLIC_SITE_URL}/posts/${post.slug}`
+  const url = `${process.env.NEXT_PUBLIC_SITE_URL}/posts/${slug}`
 
   return (
       <>
@@ -161,6 +168,8 @@ export default async function PostPage({ params }: { params: { slug: string } })
                 <RssLink />
               </div>
 
+              <PostReactions postSlug={slug} />
+
               <Separator className="my-12" />
 
               {/* Author Profile */}
@@ -177,7 +186,7 @@ export default async function PostPage({ params }: { params: { slug: string } })
                   <CommentsList comments={comments} />
                   <div className="mt-8">
                     <h3 className="text-lg font-semibold mb-4">Add a Comment</h3>
-                    <CommentForm postSlug={params.slug} />
+                    <CommentForm postSlug={slug} />
                   </div>
                 </div>
               </section>
@@ -194,4 +203,3 @@ export default async function PostPage({ params }: { params: { slug: string } })
       </>
   )
 }
-

@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "NEXTJS_IGNORE_ESLINT=1 next build",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint"
   },
@@ -26,6 +26,7 @@
     "dotenv": "^16.4.7",
     "drizzle-orm": "^0.40.0",
     "feed": "^4.2.2",
+    "framer-motion": "^12.4.10",
     "fs": "^0.0.1-security",
     "graphql": "^16.10.0",
     "graphql-request": "^7.1.2",

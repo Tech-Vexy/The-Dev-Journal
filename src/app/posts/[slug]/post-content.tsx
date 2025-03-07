@@ -20,8 +20,9 @@ import { calculateReadingTime } from "@/lib/reading-time"
 import { Clock, Eye } from "lucide-react"
 import { useViews } from "@/hooks/use-views"
 import type { Comment } from "@/lib/comments"
-import type { Post } from "@/types/posts"
+import type { Post } from "@/types/post"
 import type { JSX } from "react"
+import PostReactions from "@/components/post-reactions"
 
 interface PostContentProps {
     params: { slug: string }
@@ -145,6 +146,8 @@ export default function PostContent({ params, post, comments, allPosts }: PostCo
                         <div className="mt-8">
                             <ShareButtons title={post.title} url={url} />
                         </div>
+
+                        <PostReactions postSlug={params.slug} />
 
                         <Separator className="my-12" />
 

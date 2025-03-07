@@ -31,13 +31,13 @@ export default function Footer() {
                   </Link>
                 </Button>
                 <Button variant="ghost" size="icon" asChild>
-                  <Link href="https://linkedin.com" target="_blank" rel="noopener noreferrer">
+                  <Link href="https://linkedin.com/in/veldrineevelia" target="_blank" rel="noopener noreferrer">
                     <Linkedin className="h-4 w-4" />
                     <span className="sr-only">LinkedIn</span>
                   </Link>
                 </Button>
                 <Button variant="ghost" size="icon" asChild>
-                  <Link href="https://facebook.com" target="_blank" rel="noopener noreferrer">
+                  <Link href="https://www.facebook.com/profile.php?id=100082340336045" target="_blank" rel="noopener noreferrer">
                     <Facebook className="h-4 w-4" />
                     <span className="sr-only">Facebook</span>
                   </Link>

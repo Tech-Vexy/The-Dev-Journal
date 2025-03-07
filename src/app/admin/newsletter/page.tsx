@@ -190,7 +190,7 @@ export default function NewsletterAdminPage() {
 function getDefaultTemplate() {
     return `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
   <div style="background-color: #4F46E5; padding: 20px; text-align: center;">
-    <h1 style="color: white; margin: 0;">DevBlog Newsletter</h1>
+    <h1 style="color: white; margin: 0;">The Dev Journal Newsletter</h1>
   </div>
   
   <div style="padding: 20px;">
@@ -210,7 +210,7 @@ function getDefaultTemplate() {
     </div>
     
     <p>Thanks for subscribing to our newsletter!</p>
-    <p>The Dev Journal Team</p>
+    <p>The Dev Journal</p>
   </div>
 </div>`
 }

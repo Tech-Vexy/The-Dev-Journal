@@ -1,13 +1,12 @@
 import { NextResponse } from "next/server"
-import { kv } from "@vercel/kv"
 
 export async function POST(request: Request) {
     try {
         const subscription = await request.json()
 
-        // Store subscription in KV store
-        const subscriptionId = Math.random().toString(36).substring(2)
-        await kv.set(`push:subscription:${subscriptionId}`, JSON.stringify(subscription))
+        // In a production app, you would store this subscription
+        // For now, we'll just return success
+        console.log("Push subscription received:", subscription)
 
         return NextResponse.json({ success: true })
     } catch (error) {
