@@ -8,7 +8,7 @@ if (!publicVapidKey || !privateVapidKey) {
     console.warn("Web Push requires VAPID keys to be set")
 }
 
-webPush.setVapidDetails(webPushContact || "http://localhost:3000", publicVapidKey || "", privateVapidKey || "")
+webPush.setVapidDetails(webPushContact || "https://localhost:3000", publicVapidKey || "", privateVapidKey || "")
 
 export { webPush }
 
