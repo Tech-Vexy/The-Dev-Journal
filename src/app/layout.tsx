@@ -9,8 +9,8 @@ import { Providers } from "@/components/providers"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Next.js Blog with DatoCMS",
-  description: "A modern blog built with Next.js and DatoCMS",
+  title: "The Dev Jounal",
+  description: "The Modern Blog For The Modern Software Developer",
 }
 
 export default function RootLayout({
