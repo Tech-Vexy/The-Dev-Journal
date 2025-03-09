@@ -1,7 +1,7 @@
 {
 "name": "The Dev Journal",
 "short_name": "The Dev Journal",
-"start_url": "https://the-dev-journal-blog.vercel.app/",
+"start_url": "/",
 "display": "standalone",
 "description": "The Perfect Blog For The Modern Software Developer",
 "lang": " Ten",
