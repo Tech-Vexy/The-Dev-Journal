@@ -1,4 +1,5 @@
-'use client'
+'use client';
+
 import { getAllCategories, getAllPosts } from "@/lib/datocms"
 import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
