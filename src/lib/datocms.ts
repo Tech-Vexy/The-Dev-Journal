@@ -1,22 +1,90 @@
-import { GraphQLClient } from "graphql-request"
+import { GraphQLClient } from "graphql-request";
 
-const API_TOKEN = process.env.DATOCMS_API_TOKEN
-const API_URL = "https://graphql.datocms.com"
+// Define TypeScript interfaces for your data models
+interface Author {
+  name: string;
+  picture?: {
+    url: string;
+    alt: string;
+  };
+  biography?: string;
+  twitter?: string;
+  facebook?: string;
+  linkedin?: string;
+  github?: string;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+}
+
+interface CoverImage {
+  url: string;
+  alt: string;
+  width: number;
+  height: number;
+}
+
+interface Post {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  date: string;
+  coverImage: CoverImage;
+  author: Author;
+  categories: Category[];
+  content?: {
+    value: any; // Using any for the structured content - you could define a more specific type
+    blocks: Array<ImageBlock | any>; // Include all possible block types
+  };
+}
+
+interface ImageBlock {
+  __typename: "ImageBlockRecord";
+  id: string;
+  image: {
+    url: string;
+    alt: string;
+    width: number;
+    height: number;
+  };
+}
+
+// GraphQL query response types
+interface AllPostsResponse {
+  allPosts: Post[];
+}
+
+interface PostBySlugResponse {
+  post: Post | null;
+}
+
+interface AllCategoriesResponse {
+  allCategories: Category[];
+}
+
+// API configuration
+const API_TOKEN = process.env.DATOCMS_API_TOKEN;
+const API_URL = "https://graphql.datocms.com";
 
 if (!API_TOKEN) {
-  console.warn("Warning: DATOCMS_API_TOKEN environment variable is not set")
+  console.warn("Warning: DATOCMS_API_TOKEN environment variable is not set");
 }
 
 const client = new GraphQLClient(API_URL, {
   headers: {
-    Authorization: `Bearer ${API_TOKEN}`,
+    Authorization: `Bearer ${API_TOKEN || ""}`,
   },
-})
+});
 
-export async function getAllPosts() {
+export async function getAllPosts(): Promise<Post[]> {
   if (!API_TOKEN) {
-    console.warn("Using mock data because DATOCMS_API_TOKEN is not set")
-    return getMockPosts()
+    console.warn("Using mock data because DATOCMS_API_TOKEN is not set");
+    return getMockPosts();
   }
 
   const query = `
@@ -43,34 +111,32 @@ export async function getAllPosts() {
       }
     }
   }
-`
+`;
 
   try {
-    const data = await client.request(query)
+    const data = await client.request<AllPostsResponse>(query);
 
     // Handle case where categories field doesn't exist in DatoCMS schema
     if (data.allPosts) {
-      data.allPosts = data.allPosts.map((post) => {
-        if (!post.categories) {
-          post.categories = []
-        }
-        return post
-      })
+      return data.allPosts.map((post) => ({
+        ...post,
+        categories: post.categories || [],
+      }));
     }
 
-    return data.allPosts
+    return [];
   } catch (error) {
-    console.error("Error fetching posts:", error)
-    console.error("Please check that your DATOCMS_API_TOKEN is correct and has the necessary permissions")
-    return getMockPosts()
+    console.error("Error fetching posts:", error);
+    console.error("Please check that your DATOCMS_API_TOKEN is correct and has the necessary permissions");
+    return getMockPosts();
   }
 }
 
-export async function getPostBySlug(slug: string) {
+export async function getPostBySlug(slug: string): Promise<Post | null> {
   if (!API_TOKEN) {
-    console.warn("Using mock data because DATOCMS_API_TOKEN is not set")
-    const mockPosts = getMockPosts()
-    return mockPosts.find((post) => post.slug === slug) || null
+    console.warn("Using mock data because DATOCMS_API_TOKEN is not set");
+    const mockPosts = getMockPosts();
+    return mockPosts.find((post) => post.slug === slug) || null;
   }
 
   const query = `
@@ -109,6 +175,10 @@ export async function getPostBySlug(slug: string) {
           alt
         }
         biography
+        twitter
+        facebook
+        linkedin
+        github
       }
       categories {
         id
@@ -117,28 +187,31 @@ export async function getPostBySlug(slug: string) {
       }
     }
   }
-`
+`;
 
   try {
-    const data = await client.request(query, { slug })
+    const data = await client.request<PostBySlugResponse>(query, { slug });
 
     // Handle case where categories field doesn't exist in DatoCMS schema
-    if (data.post && !data.post.categories) {
-      data.post.categories = []
+    if (data.post) {
+      return {
+        ...data.post,
+        categories: data.post.categories || [],
+      };
     }
 
-    return data.post
+    return null;
   } catch (error) {
-    console.error(`Error fetching post with slug ${slug}:`, error)
-    const mockPosts = getMockPosts()
-    return mockPosts.find((post) => post.slug === slug) || null
+    console.error(`Error fetching post with slug ${slug}:`, error);
+    const mockPosts = getMockPosts();
+    return mockPosts.find((post) => post.slug === slug) || null;
   }
 }
 
-export async function getAllCategories() {
+export async function getAllCategories(): Promise<Category[]> {
   if (!API_TOKEN) {
-    console.warn("Using mock data because DATOCMS_API_TOKEN is not set")
-    return getMockCategories()
+    console.warn("Using mock data because DATOCMS_API_TOKEN is not set");
+    return getMockCategories();
   }
 
   const query = `
@@ -150,24 +223,24 @@ export async function getAllCategories() {
         description
       }
     }
-  `
+  `;
 
   try {
-    const data = await client.request(query)
-    return data.allCategories || []
+    const data = await client.request<AllCategoriesResponse>(query);
+    return data.allCategories || [];
   } catch (error) {
-    console.error("Error fetching categories:", error)
+    console.error("Error fetching categories:", error);
     // If the error is because the categories model doesn't exist
-    if (error.message && error.message.includes("allCategories")) {
-      console.warn("The 'Category' model might not exist in your DatoCMS schema")
-      return []
+    if (error instanceof Error && error.message && error.message.includes("allCategories")) {
+      console.warn("The 'Category' model might not exist in your DatoCMS schema");
+      return [];
     }
-    console.error("Please check that your DATOCMS_API_TOKEN is correct and has the necessary permissions")
-    return getMockCategories()
+    console.error("Please check that your DATOCMS_API_TOKEN is correct and has the necessary permissions");
+    return getMockCategories();
   }
 }
 
-function getMockPosts() {
+function getMockPosts(): Post[] {
   return [
     {
       id: "1",
@@ -188,7 +261,7 @@ function getMockPosts() {
           alt: "John Doe",
         },
         biography:
-            "John is a passionate web developer with several years of experience in building modern web applications. He loves sharing his knowledge and insights about the latest trends in web development.",
+          "John is a passionate web developer with several years of experience in building modern web applications. He loves sharing his knowledge and insights about the latest trends in web development.",
       },
       categories: [
         {
@@ -223,10 +296,10 @@ function getMockPosts() {
         blocks: [],
       },
     },
-  ]
+  ];
 }
 
-function getMockCategories() {
+function getMockCategories(): Category[] {
   return [
     {
       id: "1",
@@ -252,6 +325,5 @@ function getMockCategories() {
       slug: "nextjs",
       description: "Learn about Next.js framework",
     },
-  ]
+  ];
 }
-

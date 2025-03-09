@@ -1,49 +1,76 @@
 import Image from "next/image"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Twitter, Github, Linkedin, Facebook, Mail, LinkIcon } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 interface AuthorProfileProps {
-    author: {
-        name: string
-        picture?: {
-            url: string
-            alt?: string
-        }
-        biography?: string
+  author: {
+    name: string
+    
+    picture?: {
+      url: string
+      alt?: string
     }
+    biography?: string
+    twitter?: string
+    github?: string
+    linkedin?: string
+    facebook?: string
+  }
 }
 
 export default function AuthorProfile({ author }: AuthorProfileProps) {
-    return (
-        <Card className="overflow-hidden">
-            <CardHeader className="bg-accent/10 pb-0">
-                <div className="flex items-center gap-4">
-                    <div className="relative h-16 w-16 rounded-full overflow-hidden bg-muted">
-                        {author.picture?.url ? (
-                            <Image
-                                src={author.picture.url || "/placeholder.svg"}
-                                alt={author.picture.alt || author.name}
-                                fill
-                                className="object-cover"
-                            />
-                        ) : (
-                            <div className="h-full w-full flex items-center justify-center text-2xl font-bold text-muted-foreground">
-                                {author.name.charAt(0)}
-                            </div>
-                        )}
-                    </div>
-                    <div>
-                        <h3 className="text-lg font-semibold">{author.name}</h3>
-                    </div>
-                </div>
-            </CardHeader>
-            <CardContent className="pt-6">
-                {author.biography ? (
-                    <p className="text-muted-foreground">{author.biography}</p>
-                ) : (
-                    <p className="text-muted-foreground italic">No biography available.</p>
-                )}
-            </CardContent>
-        </Card>
-    )
+  if (!author) return null
+
+  return (
+    <div className="bg-muted/30 p-6 rounded-lg flex flex-col md:flex-row gap-6 items-center md:items-start">
+      {author.picture && (
+        <div className="flex-shrink-0">
+          <Image
+            src={author.picture.url || "/placeholder.svg"}
+            alt={author.picture.alt || `${author.name}'s profile picture`}
+            width={100}
+            height={100}
+            className="rounded-full"
+          />
+        </div>
+      )}
+      <div className="flex-1 text-center md:text-left">
+        <h3 className="text-xl font-bold mb-2">{author.name}</h3>
+        {author.biography && <p className="text-muted-foreground mb-4">{author.biography}</p>}
+
+        <div className="flex flex-wrap gap-2 justify-center md:justify-start">
+          {author.twitter && (
+            <Button variant="outline" size="icon" asChild>
+              <a href={author.twitter} target="_blank" rel="noopener noreferrer" aria-label="Twitter">
+                <Twitter className="h-4 w-4" />
+              </a>
+            </Button>
+          )}
+          {author.github && (
+            <Button variant="outline" size="icon" asChild>
+              <a href={author.github} target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                <Github className="h-4 w-4" />
+              </a>
+            </Button>
+          )}
+          {author.linkedin && (
+            <Button variant="outline" size="icon" asChild>
+              <a href={author.linkedin} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+                <Linkedin className="h-4 w-4" />
+              </a>
+            </Button>
+          )}
+          {author.facebook && (
+            <Button variant="outline" size="icon" asChild>
+              <a href={author.facebook} target="_blank" rel="noopener noreferrer" aria-label="Facebook">
+                <Facebook className="h-4 w-4" />
+              </a>
+            </Button>
+          )}
+          
+        </div>
+      </div>
+    </div>
+  )
 }
 
