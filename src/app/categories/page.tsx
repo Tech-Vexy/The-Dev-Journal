@@ -1,5 +1,3 @@
-'use client';
-
 import { getAllCategories, getAllPosts } from "@/lib/datocms"
 import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -46,7 +44,6 @@ export default async function CategoriesPage() {
                         key={post.id}
                         href={`/posts/${post.slug}`}
                         className="text-sm text-primary hover:underline"
-                        onClick={(e) => e.stopPropagation()}
                       >
                         {post.title}
                       </Link>
@@ -63,4 +60,3 @@ export default async function CategoriesPage() {
     </div>
   )
 }
-
