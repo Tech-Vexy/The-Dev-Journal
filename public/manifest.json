@@ -1,0 +1,48 @@
+{
+"name": "The Dev Journal",
+"short_name": "The Dev Journal",
+"start_url": "https://the-dev-journal-blog.vercel.app/",
+"display": "standalone",
+"description": "The Perfect Blog For The Modern Software Developer",
+"lang": " Ten",
+"dir": "auto",
+"theme_color": "#000000",
+"background_color": "#000000",
+"orientation": "any",
+"icons": [
+    {
+        "src": "/android-chrome-512x512.png",
+        "sizes": "512x512",
+        "type": "image/png",
+        "purpose": "maskable"
+    },
+    {
+        "src": "/android-chrome-192x192.png",
+        "sizes": "192x192",
+        "type": "image/png",
+        "purpose": "any"
+    }
+],
+"screenshots": [
+    {
+        "src": "https://www.pwabuilder.com/assets/screenshots/screen1.png",
+        "sizes": "2880x1800",
+        "type": "image/png",
+        "description": "A screenshot of the home page"
+    }
+],
+"related_applications": [
+    {
+        "platform":"windows",
+        "url": " The URL to your app in that app store"
+    }
+],
+"prefer_related_applications": false,
+"shortcuts": [
+    {
+        "name":"The Dev Journal",
+        "url":"/",
+        "description":"The Dev Journal Home"
+    }
+]
+}
