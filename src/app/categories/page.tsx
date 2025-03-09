@@ -5,8 +5,8 @@ import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
 export const metadata = {
-  title: "Categories - The Dev Journal",
-  description: "Browse articles by category",
+    title: "Categories - The Dev Journal",
+    description: "Browse articles by category",
 }
 
 export default async function CategoriesPage() {
