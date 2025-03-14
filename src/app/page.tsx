@@ -1,192 +1,149 @@
-import { getAllPosts } from "@/lib/datocms";
-import PostCard from "@/components/post-card";
-import Image from "next/image";
-import Link from "next/link";
-import { format } from "date-fns";
-import { Clock, ChevronRight } from "lucide-react";
-import { calculateReadingTime } from "@/lib/reading-time";
-import { Button } from "@/components/ui/button";
-import NewsletterForm from "@/components/newsletter-form";
-import { Suspense } from "react";
+import { getAllPosts } from "@/lib/datocms"
+import PostCard from "@/components/post-card"
+import Image from "next/image"
+import Link from "next/link"
+import { ChevronRight, TrendingUp, BookOpen, Sparkles, Mail, Edit } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import FeaturedPostCard from "@/components/featured-post-card"
+import type { Metadata } from "next"
+import { generateWebsiteStructuredData } from "@/lib/structured-data"
+import Script from "next/script"
+
+export const metadata: Metadata = {
+  title: "The Dev Journal - Insights for the Modern Developer",
+  description:
+    "Cutting-edge tutorials, in-depth articles, and resources for developers building the future of the web.",
+  openGraph: {
+    title: "The Dev Journal - Insights for the Modern Developer",
+    description:
+      "Cutting-edge tutorials, in-depth articles, and resources for developers building the future of the web.",
+    url: process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
+    siteName: "The Dev Journal",
+    images: [
+      {
+        url: `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/og-image.jpg`,
+        width: 1200,
+        height: 630,
+        alt: "The Dev Journal - Insights for the Modern Developer",
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "The Dev Journal - Insights for the Modern Developer",
+    description:
+      "Cutting-edge tutorials, in-depth articles, and resources for developers building the future of the web.",
+    images: [`${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/og-image.jpg`],
+  },
+  alternates: {
+    canonical: process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
+    types: {
+      "application/rss+xml": `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/rss.xml`,
+    },
+  },
+}
 
 export default async function Home() {
-    const posts = await getAllPosts();
+  const posts = await getAllPosts()
+  const featuredPost = posts[0]
+  const regularPosts = posts.slice(1, 4)
+  const latestPosts = posts.slice(4, 7)
 
-    // Handle edge cases where posts might be empty
-    if (!posts.length) {
-        return <EmptyState />;
-    }
+  // Generate structured data for the website
+  const structuredData = generateWebsiteStructuredData()
 
-    const featuredPost = posts[0];
-    const regularPosts = posts.slice(1, 7); // Limit to 6 regular posts for better performance
-
-    return (
-        <main className="space-y-16 py-8">
-            {/* Hero Section */}
-            <section className="text-center py-2S">
-                <h1 className="text-5xl md:text-6xl font-bold mb-2 bg-clip-text text-blue-950 bg-gradient-to-r from-primary to-accent">
-                    The Dev Journal
-                </h1>
-                <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                    Cutting-edge tutorials, insights, and resources for Modern Software Developers.
-                </p>
-            </section>
-
-            {/* Featured Post */}
-            <FeaturedPost post={featuredPost} />
-
-            {/* Latest Posts */}
-            <LatestPosts posts={regularPosts} />
-
-            <BecomeAuthor/>
-
-            {/* Newsletter Section */}
-            <NewsletterSection />
-        </main>
-    );
-}
-
-function BecomeAuthor() {
   return (
-    <section className="text-center py-8 border-y border-border">
-        <p className="text-xl font-medium">
-          Ready to become an author for The Dev Journal?{" "}
-          <Link href="/become-author" className="text-primary hover:text-primary/80 font-semibold">
-            Get Started
-          </Link>
-        </p>
-      </section>
-  )
-}
-// Component for featured post section
-function FeaturedPost({ post }) {
-    if (!post) return null;
+    <>
+      <Script
+        id="structured-data-website"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: structuredData }}
+      />
 
-    return (
-        <section>
-            <div className="relative h-[500px] rounded-2xl overflow-hidden">
+      <div className="space-y-24 py-12">
+               
+
+        {/* Featured Post */}
+        {featuredPost && (
+          <section className="container mx-auto px-6">
+            <div className="mb-10 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center justify-center h-10 w-10 rounded-full bg-primary/10">
+                  <TrendingUp className="h-5 w-5 text-primary" />
+                </div>
+                <h2 className="text-2xl font-bold tracking-tight">Featured Post</h2>
+              </div>
+              <Link href="/posts" className="group text-primary hover:text-primary/80 flex items-center font-medium">
+                View all posts <ChevronRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </div>
+            <div className="transform hover:scale-[1.01] transition-all duration-300">
+              <FeaturedPostCard post={featuredPost} />
+            </div>
+          </section>
+        )}
+
+        {/* Latest Posts */}
+        <section className="container mx-auto px-6">
+          <div className="mb-10 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center h-10 w-10 rounded-full bg-primary/10">
+                <BookOpen className="h-5 w-5 text-primary" />
+              </div>
+              <h2 className="text-2xl font-bold tracking-tight">Latest Articles</h2>
+            </div>
+            <Link href="/posts" className="group text-primary hover:text-primary/80 flex items-center font-medium">
+              View all posts <ChevronRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </div>
+          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+            {regularPosts.map((post: { id: any; title?: string; slug?: string; excerpt?: string; date?: string; coverImage?: { url: string; alt?: string; width?: number; height?: number }; author?: { name: string; avatar?: string }; content?: { value: any } | undefined; categories?: { id: string; name: string; slug: string }[] | undefined }) => (
+              post.title ? 
+                <div key={post.id} className="transform hover:scale-[1.02] transition-all duration-300 hover:shadow-lg rounded-xl">
+                  <PostCard post={post as { id: string; title: string; slug: string; excerpt: string; date: string; coverImage: { url: string; alt?: string; width?: number; height?: number }; author: { name: string; avatar?: string }; content?: { value: any } | undefined; categories?: { id: string; name: string; slug: string }[] | undefined }} />
+                </div> : null
+            ))}
+          </div>
+        </section>
+
+        {/* Become an Author Section */}
+        <section className="container mx-auto px-6">
+          <div className="rounded-3xl bg-card p-12 md:p-16 border overflow-hidden relative">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-accent/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
+            
+            <div className="flex flex-col md:flex-row items-center justify-between gap-10 relative z-10">
+              <div className="md:max-w-xl">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="flex items-center justify-center h-10 w-10 rounded-full bg-primary/10">
+                    <Edit className="h-5 w-5 text-primary" />
+                  </div>
+                  <span className="text-sm font-medium text-primary">Join Our Team</span>
+                </div>
+                <h2 className="mb-4 text-3xl font-bold tracking-tight">Become an Author</h2>
+                <p className="mb-8 text-lg text-muted-foreground leading-relaxed">
+                  Share your knowledge and expertise with our growing community of developers. Join our team of writers
+                  and help others learn and grow.
+                </p>
+                <Button asChild size="lg" className="rounded-full bg-blue-950 px-8">
+                  <Link href="/become-author">Get Started</Link>
+                </Button>
+              </div>
+              <div className="relative h-64 w-64 md:h-80 md:w-80 rounded-2xl overflow-hidden shadow-xl">
                 <Image
-                    src={post.coverImage?.url || "/placeholder.svg?height=800&width=1400"}
-                    alt={post.title}
-                    fill
-                    className="object-cover transition-transform hover:scale-105 duration-700"
-                    sizes="(max-width: 768px) 100vw, 1200px"
-                    priority
+                  src="/author.jpg?height=800&width=800"
+                  alt="Become an author"
+                  fill
+                  className="object-cover"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
-                    <div className="flex flex-wrap items-center gap-4 mb-3">
-            <span className="px-3 py-1 bg-primary text-primary-foreground text-xs font-medium rounded-full">
-              Featured
-            </span>
-                        <span className="text-sm text-white/80">
-              {format(new Date(post.date), "MMMM d, yyyy")}
-            </span>
-                        <span className="flex items-center text-sm text-white/80">
-              <Clock className="h-3 w-3 mr-1" />
-                            {calculateReadingTime(post.content?.value || "")} min read
-            </span>
-                    </div>
-                    <h2 className="text-3xl md:text-4xl font-bold mb-3 text-white">
-                        <Link href={`/posts/${post.slug}`} className="hover:underline">
-                            {post.title}
-                        </Link>
-                    </h2>
-                    <p className="text-white/90 text-lg mb-6 line-clamp-2 max-w-3xl">
-                        {post.excerpt}
-                    </p>
-                    <Button asChild variant="default" size="lg" className="group">
-                        <Link href={`/posts/${post.slug}`}>
-                            Read More{" "}
-                            <ChevronRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
-                        </Link>
-                    </Button>
-                </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
+              </div>
             </div>
+          </div>
         </section>
-    );
-}
-
-// Component for latest posts section
-function LatestPosts({ posts }) {
-    if (!posts.length) return null;
-
-    return (
-        <section>
-            <div className="flex items-center justify-between mb-8">
-                <h2 className="text-3xl font-bold">Latest Posts</h2>
-                <Link
-                    href="/posts"
-                    className="text-primary hover:text-primary/80 flex items-center group"
-                >
-                    View all posts{" "}
-                    <ChevronRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
-                </Link>
-            </div>
-            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-                <Suspense fallback={<PostsLoadingSkeleton count={6} />}>
-                    {posts.map((post) => (
-                        <PostCard key={post.id} post={post} />
-                    ))}
-                </Suspense>
-            </div>
-        </section>
-    );
-}
-
-// Component for newsletter section
-function NewsletterSection() {
-    return (
-        <section className="bg-accent/5 p-8 md:p-12 rounded-2xl">
-            <div className="max-w-3xl mx-auto">
-                <div className="text-center mb-8">
-                    <h2 className="text-3xl font-bold mb-4">Stay Updated</h2>
-                    <p className="text-muted-foreground">
-                        Get the latest articles, tutorials, and updates delivered straight to
-                        your inbox.
-                    </p>
-                </div>
-                <div className="max-w-md mx-auto">
-                    <NewsletterForm />
-                </div>
-            </div>
-        </section>
-    );
-}
-
-// Empty state when no posts are available
-function EmptyState() {
-    return (
-        <div className="flex flex-col items-center justify-center min-h-[60vh]">
-            <h2 className="text-2xl font-bold mb-4">No posts available yet</h2>
-            <p className="text-muted-foreground mb-6">
-                Check back soon for new content!
-            </p>
-            <NewsletterSection />
-        </div>
-    );
-}
-
-// Loading skeleton for posts
-function PostsLoadingSkeleton({ count = 3 }) {
-    return (
-        <>
-            {Array(count)
-                .fill(null)
-                .map((_, i) => (
-                    <div
-                        key={i}
-                        className="rounded-lg overflow-hidden border border-border animate-pulse"
-                    >
-                        <div className="h-48 bg-muted"></div>
-                        <div className="p-4 space-y-3">
-                            <div className="h-6 bg-muted rounded w-3/4"></div>
-                            <div className="h-4 bg-muted rounded w-1/2"></div>
-                            <div className="h-4 bg-muted rounded w-full"></div>
-                            <div className="h-4 bg-muted rounded w-full"></div>
-                        </div>
-                    </div>
-                ))}
-        </>
-    );
+      </div>
+    </>
+  )
 }

@@ -1,16 +1,17 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { addComment } from "@/app/actions/comments"
+import { useToast } from "@/components/ui/use-toast"
 
-export default function CommentForm({ postSlug }: { postSlug: string }) {
+export default function CommentForm({ postId, postSlug }: { postId: string; postSlug: string }) {
   const router = useRouter()
+  const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -18,15 +19,24 @@ export default function CommentForm({ postSlug }: { postSlug: string }) {
     setIsSubmitting(true)
 
     const formData = new FormData(event.currentTarget)
-    const name = formData.get("name") as string
+    const authorName = formData.get("name") as string
     const content = formData.get("content") as string
 
     try {
-      await addComment(postSlug, name, content)
+      await addComment(postId, authorName, content)
       event.currentTarget.reset()
+      toast({
+        title: "Comment added",
+        description: "Your comment has been added successfully.",
+      })
       router.refresh()
     } catch (error) {
       console.error("Error submitting comment:", error)
+      toast({
+        title: "Error",
+        description: "Failed to add your comment. Please try again.",
+        variant: "destructive",
+      })
     } finally {
       setIsSubmitting(false)
     }

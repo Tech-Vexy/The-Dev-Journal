@@ -1,11 +1,10 @@
 "use client"
-
-import Image from "next/image"
 import { format } from "date-fns"
 import { StructuredText, renderNodeRule } from "react-datocms"
 import { isHeading, isParagraph, isCode } from "datocms-structured-text-utils"
 import CommentForm from "@/components/comment-form"
 import CommentsList from "@/components/comments-list"
+import PostReactions from "@/components/post-reactions"
 import { Separator } from "@/components/ui/separator"
 import RssLink from "@/components/rss-link"
 import ShareButtons from "@/components/share-buttons"
@@ -20,19 +19,23 @@ import BecomeAuthorAd from "@/components/become-author-ad"
 import { calculateReadingTime } from "@/lib/reading-time"
 import { Clock, Eye } from "lucide-react"
 import { useViews } from "@/hooks/use-views"
-import type { Comment } from "@/lib/comments"
-import type { Post } from "@/types/posts"
+import type { Post, DatoCMSBlock } from "@/types/post"
 import type { JSX } from "react"
 import CodeBlock from "@/components/code-block"
+import { generatePostStructuredData } from "@/lib/structured-data"
+import Script from "next/script"
+import Head from "next/head"
+import ResponsiveImage from "@/components/responsive-image"
+import VideoPlayer from "@/components/video-player"
+import ImageGallery from "@/components/image-gallery"
 
 interface PostContentProps {
   params: { slug: string }
   post: Post
-  comments: Comment[]
   allPosts: Post[]
 }
 
-export default function PostContent({ params, post, comments, allPosts }: PostContentProps) {
+export default function PostContent({ params, post, allPosts }: PostContentProps) {
   const views = useViews(params.slug)
   const readingTime = calculateReadingTime(post.content?.value || "")
   const currentPostIndex = allPosts.findIndex((p) => p.slug === params.slug)
@@ -40,10 +43,86 @@ export default function PostContent({ params, post, comments, allPosts }: PostCo
   const nextPost = currentPostIndex > 0 ? allPosts[currentPostIndex - 1] : undefined
   const relatedPosts = allPosts.filter((p) => p.slug !== post.slug).slice(0, 3)
 
-  const url = `${process.env.NEXT_PUBLIC_SITE_URL}/posts/${post.slug}`
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
+  const url = `/posts/${post.slug}`
+  const fullUrl = `${siteUrl}${url}`
+
+  // Generate structured data for this post
+  const structuredData = generatePostStructuredData(post, url)
+
+  // Render DatoCMS blocks
+  const renderBlock = ({ record }: { record: DatoCMSBlock }) => {
+    if (!record) return null
+
+    if (record.__typename === "ImageBlockRecord") {
+      return (
+        <div className="my-8">
+          <ResponsiveImage
+            src={record.image.url}
+            alt={record.image.alt || ""}
+            width={record.image.width}
+            height={record.image.height}
+            className="rounded-lg"
+          />
+        </div>
+      )
+    }
+
+    // These blocks will only be used in development with mock data
+    // In production, they won't be queried from DatoCMS
+    if (process.env.NODE_ENV === "development") {
+      if (record.__typename === "VideoBlockRecord") {
+        return (
+          <div className="my-8">
+            {record.title && <h3 className="text-lg font-medium mb-2">{record.title}</h3>}
+            <VideoPlayer
+              src={record.videoUrl}
+              poster={record.coverImage?.url}
+              title={record.title}
+              className="rounded-lg overflow-hidden"
+            />
+          </div>
+        )
+      }
+
+      if (record.__typename === "GalleryBlockRecord") {
+        return (
+          <div className="my-8">
+            {record.title && <h3 className="text-lg font-medium mb-2">{record.title}</h3>}
+            <ImageGallery images={record.images} columns={3} gap={2} className="rounded-lg overflow-hidden" />
+          </div>
+        )
+      }
+    }
+
+    return null
+  }
 
   return (
     <>
+      <Head>
+        <title>{post.title} | The Dev Journal</title>
+        <meta name="description" content={post.excerpt} />
+        <meta property="og:title" content={post.title} />
+        <meta property="og:description" content={post.excerpt} />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content={fullUrl} />
+        {post.coverImage && <meta property="og:image" content={post.coverImage.url} />}
+        <meta property="article:published_time" content={post.date} />
+        <meta property="article:author" content={post.author.name} />
+        {post.categories?.map((category) => (
+          <meta key={category.id} property="article:tag" content={category.name} />
+        ))}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={post.title} />
+        <meta name="twitter:description" content={post.excerpt} />
+        {post.coverImage && <meta name="twitter:image" content={post.coverImage.url} />}
+        <link rel="canonical" href={fullUrl} />
+      </Head>
+
+      {/* Add structured data */}
+      <Script id="structured-data" type="application/ld+json" dangerouslySetInnerHTML={{ __html: structuredData }} />
+
       <ReadingProgress />
       <KeyboardShortcuts />
 
@@ -84,12 +163,12 @@ export default function PostContent({ params, post, comments, allPosts }: PostCo
               </div>
 
               {post.coverImage && (
-                <div className="relative aspect-video mb-8 overflow-hidden rounded-lg">
-                  <Image
-                    src={post.coverImage.url || "/placeholder.svg"}
+                <div className="relative mb-8 overflow-hidden rounded-lg">
+                  <ResponsiveImage
+                    src={post.coverImage.url}
                     alt={post.coverImage.alt || post.title}
-                    fill
-                    className="object-cover"
+                    width={post.coverImage.width}
+                    height={post.coverImage.height}
                     priority
                   />
                 </div>
@@ -100,22 +179,7 @@ export default function PostContent({ params, post, comments, allPosts }: PostCo
               {post.content && (
                 <StructuredText
                   data={post.content}
-                  renderBlock={({ record }) => {
-                    if (record.__typename === "ImageBlockRecord") {
-                      return (
-                        <div className="my-8">
-                          <Image
-                            src={record.image.url || "/placeholder.svg"}
-                            alt={record.image.alt || ""}
-                            width={record.image.width || 800}
-                            height={record.image.height || 450}
-                            className="rounded-lg"
-                          />
-                        </div>
-                      )
-                    }
-                    return null
-                  }}
+                  renderBlock={renderBlock}
                   customNodeRules={[
                     renderNodeRule(isHeading, ({ node, children, key }) => {
                       const Tag = `h${node.level}` as keyof JSX.IntrinsicElements
@@ -136,6 +200,7 @@ export default function PostContent({ params, post, comments, allPosts }: PostCo
                           code={node.code}
                           language={node.language || ""}
                           filename={node.highlight?.length ? `highlighted: ${node.highlight.join(", ")}` : undefined}
+                          highlightLines={node.highlight?.map(Number) || []}
                         />
                       )
                     }),
@@ -145,8 +210,13 @@ export default function PostContent({ params, post, comments, allPosts }: PostCo
             </div>
 
             <div className="mt-8">
-              <ShareButtons title={post.title} url={url} />
+              <ShareButtons title={post.title} url={fullUrl} />
             </div>
+
+            <Separator className="my-8" />
+
+            {/* Post Reactions */}
+            <PostReactions postId={post.id} postSlug={post.slug} reactions={post.reactions || []} />
 
             <Separator className="my-12" />
 
@@ -169,10 +239,10 @@ export default function PostContent({ params, post, comments, allPosts }: PostCo
             <section className="mt-12">
               <h2 className="text-2xl font-bold mb-6">Comments</h2>
               <div className="space-y-8">
-                <CommentsList comments={comments} />
+                <CommentsList comments={post.comments || []} />
                 <div className="mt-8">
                   <h3 className="text-lg font-semibold mb-4">Add a Comment</h3>
-                  <CommentForm postSlug={params.slug} />
+                  <CommentForm postId={post.id} postSlug={post.slug} />
                 </div>
               </div>
             </section>

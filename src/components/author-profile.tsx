@@ -1,11 +1,11 @@
 import Image from "next/image"
-import { Twitter, Github, Linkedin, Facebook, Mail, LinkIcon } from "lucide-react"
+import { Twitter, Github, Linkedin, Facebook } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 interface AuthorProfileProps {
   author: {
     name: string
-    
+
     picture?: {
       url: string
       alt?: string
@@ -67,7 +67,6 @@ export default function AuthorProfile({ author }: AuthorProfileProps) {
               </a>
             </Button>
           )}
-          
         </div>
       </div>
     </div>

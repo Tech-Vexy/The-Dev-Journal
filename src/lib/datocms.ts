@@ -3,22 +3,41 @@ import { cache } from "react"
 
 const API_TOKEN = process.env.DATOCMS_API_TOKEN
 const API_URL = "https://graphql.datocms.com"
+const IS_DEVELOPMENT = process.env.NODE_ENV === "development"
 
 if (!API_TOKEN) {
   console.warn("Warning: DATOCMS_API_TOKEN environment variable is not set")
 }
 
-const client = new GraphQLClient(API_URL, {
-  headers: {
-    Authorization: `Bearer ${API_TOKEN}`,
-  },
+// Create a cached GraphQL client
+const getClient = cache(() => {
+  return new GraphQLClient(API_URL, {
+    headers: {
+      Authorization: `Bearer ${API_TOKEN}`,
+    },
+    fetch: async (url, options) => {
+      // Add cache control headers for CDN caching
+      const customOptions = {
+        ...options,
+        next: { revalidate: 60 }, // Revalidate every 60 seconds
+      }
+      return fetch(url, customOptions)
+    },
+  })
 })
 
-// Cache and tag the getAllPosts function
+// Cache the GraphQL requests using React's cache function
 export const getAllPosts = cache(async () => {
-  if (!API_TOKEN) {
-    console.warn("Using mock data because DATOCMS_API_TOKEN is not set")
+  // Only use mock data in development when API token is missing
+  if (!API_TOKEN && IS_DEVELOPMENT) {
+    console.warn("Using mock data because DATOCMS_API_TOKEN is not set (development mode)")
     return getMockPosts()
+  }
+
+  // In production, we should have an API token
+  if (!API_TOKEN && !IS_DEVELOPMENT) {
+    console.error("DATOCMS_API_TOKEN is not set in production environment")
+    return []
   }
 
   const query = `
@@ -45,9 +64,10 @@ export const getAllPosts = cache(async () => {
       }
     }
   }
-  `
+`
 
   try {
+    const client = getClient()
     const data = await client.request(query)
 
     // Handle case where categories field doesn't exist in DatoCMS schema
@@ -56,6 +76,7 @@ export const getAllPosts = cache(async () => {
         if (!post.categories) {
           post.categories = []
         }
+        post.reactions = []
         return post
       })
     }
@@ -63,19 +84,34 @@ export const getAllPosts = cache(async () => {
     return data.allPosts
   } catch (error) {
     console.error("Error fetching posts:", error)
+
+    // Only use mock data as fallback in development
+    if (IS_DEVELOPMENT) {
+      console.error("Using mock data as fallback in development mode")
+      return getMockPosts()
+    }
+
+    // In production, return empty array instead of mock data
     console.error("Please check that your DATOCMS_API_TOKEN is correct and has the necessary permissions")
-    return getMockPosts()
+    return []
   }
 })
 
-// Cache and tag the getPostBySlug function
 export const getPostBySlug = cache(async (slug: string) => {
-  if (!API_TOKEN) {
-    console.warn("Using mock data because DATOCMS_API_TOKEN is not set")
+  // Only use mock data in development when API token is missing
+  if (!API_TOKEN && IS_DEVELOPMENT) {
+    console.warn("Using mock data because DATOCMS_API_TOKEN is not set (development mode)")
     const mockPosts = getMockPosts()
     return mockPosts.find((post) => post.slug === slug) || null
   }
 
+  // In production, we should have an API token
+  if (!API_TOKEN && !IS_DEVELOPMENT) {
+    console.error("DATOCMS_API_TOKEN is not set in production environment")
+    return null
+  }
+
+  // Modified query to include comments and reactions
   const query = `
   query PostBySlug($slug: String!) {
     post(filter: {slug: {eq: $slug}}) {
@@ -97,6 +133,7 @@ export const getPostBySlug = cache(async (slug: string) => {
               height
             }
           }
+            
         }
       }
       coverImage {
@@ -124,29 +161,186 @@ export const getPostBySlug = cache(async (slug: string) => {
       }
     }
   }
-  `
+`
 
   try {
+    const client = getClient()
     const data = await client.request(query, { slug })
 
     // Handle case where categories field doesn't exist in DatoCMS schema
-    if (data.post && !data.post.categories) {
-      data.post.categories = []
+    if (data.post) {
+      if (!data.post.categories) {
+        data.post.categories = []
+      }
+
+      // Initialize empty arrays for comments and reactions
+      data.post.comments = []
+      data.post.reactions = []
     }
 
     return data.post
   } catch (error) {
     console.error(`Error fetching post with slug ${slug}:`, error)
-    const mockPosts = getMockPosts()
-    return mockPosts.find((post) => post.slug === slug) || null
+
+    // Only use mock data as fallback in development
+    if (IS_DEVELOPMENT) {
+      console.error("Using mock data as fallback in development mode")
+      const mockPosts = getMockPosts()
+      return mockPosts.find((post) => post.slug === slug) || null
+    }
+
+    // In production, return null instead of mock data
+    return null
   }
 })
 
-// Cache and tag the getAllCategories function
-export const getAllCategories = cache(async () => {
+// New function to add a comment to a post
+export async function addComment(postId: string, authorName: string, content: string) {
   if (!API_TOKEN) {
-    console.warn("Using mock data because DATOCMS_API_TOKEN is not set")
+    console.error("DATOCMS_API_TOKEN is not set")
+    return null
+  }
+
+  const mutation = `
+    mutation CreateComment($postId: ItemId!, $authorName: String!, $content: String!) {
+      createComment(data: {
+        post: { connect: { id: $postId } }
+        authorName: $authorName
+        content: $content
+      }) {
+        id
+        authorName
+        content
+        createdAt
+      }
+    }
+  `
+
+  try {
+    const client = new GraphQLClient(API_URL, {
+      headers: {
+        Authorization: `Bearer ${API_TOKEN}`,
+        "X-Include-Drafts": "true",
+      },
+    })
+
+    const data = await client.request(mutation, { postId, authorName, content })
+    return data.createComment
+  } catch (error) {
+    console.error("Error adding comment:", error)
+    return null
+  }
+}
+
+// New function to add or update a reaction to a post
+export async function updateReaction(postId: string, reactionName: string, increment = true) {
+  if (!API_TOKEN) {
+    console.error("DATOCMS_API_TOKEN is not set")
+    return null
+  }
+
+  // First, check if the reaction already exists
+  const query = `
+  query GetReaction($postId: ItemId!) {
+    allReactions(filter: { post: { eq: $postId } }) {
+      id
+      name
+      count
+    }
+  }
+`
+
+  try {
+    const client = new GraphQLClient(API_URL, {
+      headers: {
+        Authorization: `Bearer ${API_TOKEN}`,
+        "X-Include-Drafts": "true",
+      },
+    })
+
+    const data = await client.request(query, { postId })
+
+    if (data.allReactions && data.allReactions.length > 0) {
+      // Find the reaction with the matching name
+      const reaction = data.allReactions.find((r) => r.name === reactionName)
+
+      if (reaction) {
+        // Update existing reaction
+        const newCount = increment ? reaction.count + 1 : Math.max(0, reaction.count - 1)
+
+        const updateMutation = `
+          mutation UpdateReaction($id: ItemId!, $count: IntType!) {
+            updateReaction(input: { id: $id, count: $count }) {
+              id
+              name
+              count
+            }
+          }
+        `
+
+        const updateData = await client.request(updateMutation, {
+          id: reaction.id,
+          count: newCount,
+        })
+
+        return updateData.updateReaction
+      } else if (increment) {
+        // Create new reaction if incrementing
+        const createMutation = `
+          mutation CreateReaction($postId: ItemId!, $name: String!) {
+            createReaction(data: {
+              post: { connect: { id: $postId } }
+              name: $name
+              count: 1
+            }) {
+              id
+              name
+              count
+            }
+          }
+        `
+
+        const createData = await client.request(createMutation, { postId, name: reactionName })
+        return createData.createReaction
+      }
+    } else if (increment) {
+      // Create new reaction if incrementing
+      const createMutation = `
+        mutation CreateReaction($postId: ItemId!, $name: String!) {
+          createReaction(data: {
+            post: { connect: { id: $postId } }
+            name: $name
+            count: 1
+          }) {
+            id
+            name
+            count
+          }
+        }
+      `
+
+      const createData = await client.request(createMutation, { postId, name: reactionName })
+      return createData.createReaction
+    }
+
+    return null
+  } catch (error) {
+    console.error("Error updating reaction:", error)
+    return null
+  }
+}
+
+export const getAllCategories = cache(async () => {
+  // Only use mock data in development when API token is missing
+  if (!API_TOKEN && IS_DEVELOPMENT) {
+    console.warn("Using mock data because DATOCMS_API_TOKEN is not set (development mode)")
     return getMockCategories()
+  }
+
+  // In production, we should have an API token
+  if (!API_TOKEN && !IS_DEVELOPMENT) {
+    console.error("DATOCMS_API_TOKEN is not set in production environment")
+    return []
   }
 
   const query = `
@@ -161,22 +355,38 @@ export const getAllCategories = cache(async () => {
   `
 
   try {
+    const client = getClient()
     const data = await client.request(query)
     return data.allCategories || []
   } catch (error) {
     console.error("Error fetching categories:", error)
+
     // If the error is because the categories model doesn't exist
     if (error.message && error.message.includes("allCategories")) {
       console.warn("The 'Category' model might not exist in your DatoCMS schema")
       return []
     }
+
+    // Only use mock data as fallback in development
+    if (IS_DEVELOPMENT) {
+      console.error("Using mock data as fallback in development mode")
+      return getMockCategories()
+    }
+
+    // In production, return empty array instead of mock data
     console.error("Please check that your DATOCMS_API_TOKEN is correct and has the necessary permissions")
-    return getMockCategories()
+    return []
   }
 })
 
-// Mock data functions remain unchanged
+// Update the getMockPosts function to include comments and reactions
 function getMockPosts() {
+  // Only return mock data in development
+  if (!IS_DEVELOPMENT) {
+    console.error("Attempted to use mock data in production environment")
+    return []
+  }
+
   return [
     {
       id: "1",
@@ -217,6 +427,37 @@ function getMockPosts() {
           slug: "react",
         },
       ],
+      comments: [
+        {
+          id: "c1",
+          content: "Great article! This helped me understand Next.js better.",
+          authorName: "Alice Johnson",
+          createdAt: new Date(Date.now() - 86400000).toISOString(),
+        },
+        {
+          id: "c2",
+          content: "I'm looking forward to trying these techniques in my project.",
+          authorName: "Bob Smith",
+          createdAt: new Date(Date.now() - 172800000).toISOString(),
+        },
+      ],
+      reactions: [
+        {
+          id: "r1",
+          name: "like",
+          count: 15,
+        },
+        {
+          id: "r2",
+          name: "love",
+          count: 7,
+        },
+        {
+          id: "r3",
+          name: "wow",
+          count: 3,
+        },
+      ],
       content: {
         value: {
           schema: "dast",
@@ -232,10 +473,69 @@ function getMockPosts() {
                   },
                 ],
               },
+              {
+                type: "paragraph",
+                children: [
+                  {
+                    type: "span",
+                    value:
+                      "Below you'll find examples of different content blocks including images, videos, and galleries.",
+                  },
+                ],
+              },
             ],
           },
         },
-        blocks: [],
+        blocks: [
+          {
+            __typename: "ImageBlockRecord",
+            id: "img1",
+            image: {
+              url: "/placeholder.svg?height=600&width=800",
+              alt: "Sample image",
+              width: 800,
+              height: 600,
+            },
+          },
+          // Mock data can still include these blocks for development
+          {
+            __typename: "VideoBlockRecord",
+            id: "vid1",
+            title: "Introduction to Next.js",
+            videoUrl: "https://www.youtube.com/watch?v=_8wkKL0Y-i0",
+            coverImage: {
+              url: "/placeholder.svg?height=600&width=800",
+              alt: "Video thumbnail",
+              width: 800,
+              height: 600,
+            },
+          },
+          {
+            __typename: "GalleryBlockRecord",
+            id: "gal1",
+            title: "Project Screenshots",
+            images: [
+              {
+                url: "/placeholder.svg?height=600&width=800&text=Image+1",
+                alt: "Gallery image 1",
+                width: 800,
+                height: 600,
+              },
+              {
+                url: "/placeholder.svg?height=600&width=800&text=Image+2",
+                alt: "Gallery image 2",
+                width: 800,
+                height: 600,
+              },
+              {
+                url: "/placeholder.svg?height=600&width=800&text=Image+3",
+                alt: "Gallery image 3",
+                width: 800,
+                height: 600,
+              },
+            ],
+          },
+        ],
       },
     },
     {
@@ -269,6 +569,26 @@ function getMockPosts() {
           id: "2",
           name: "React",
           slug: "react",
+        },
+      ],
+      comments: [
+        {
+          id: "c3",
+          content: "This clarified a lot of my questions about hooks. Thanks!",
+          authorName: "Charlie Brown",
+          createdAt: new Date(Date.now() - 43200000).toISOString(),
+        },
+      ],
+      reactions: [
+        {
+          id: "r4",
+          name: "like",
+          count: 8,
+        },
+        {
+          id: "r5",
+          name: "love",
+          count: 4,
         },
       ],
       content: {
@@ -325,6 +645,14 @@ function getMockPosts() {
           slug: "css",
         },
       ],
+      comments: [],
+      reactions: [
+        {
+          id: "r6",
+          name: "like",
+          count: 12,
+        },
+      ],
       content: {
         value: {
           schema: "dast",
@@ -350,6 +678,12 @@ function getMockPosts() {
 }
 
 function getMockCategories() {
+  // Only return mock data in development
+  if (!IS_DEVELOPMENT) {
+    console.error("Attempted to use mock data in production environment")
+    return []
+  }
+
   return [
     {
       id: "1",
@@ -377,3 +711,4 @@ function getMockCategories() {
     },
   ]
 }
+
