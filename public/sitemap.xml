@@ -1,0 +1,84 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+		<!--	created with www.mysitemapgenerator.com	-->
+		<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<url>
+	<loc>https://the-dev-journal.vercel.app/</loc>
+	<lastmod>2025-03-15T22:46:33+01:00</lastmod>
+	<priority>1.0</priority>
+</url>
+<url>
+	<loc>https://the-dev-journal.vercel.app/categories</loc>
+	<lastmod>2025-03-15T22:46:33+01:00</lastmod>
+	<priority>1.0</priority>
+</url>
+<url>
+	<loc>https://the-dev-journal.vercel.app/discover</loc>
+	<lastmod>2025-03-15T22:46:33+01:00</lastmod>
+	<priority>1.0</priority>
+</url>
+<url>
+	<loc>https://the-dev-journal.vercel.app/about</loc>
+	<lastmod>2025-03-15T22:46:33+01:00</lastmod>
+	<priority>1.0</priority>
+</url>
+<url>
+	<loc>https://the-dev-journal.vercel.app/categories/tutorials</loc>
+	<lastmod>2025-03-15T22:46:33+01:00</lastmod>
+	<priority>0.8</priority>
+</url>
+<url>
+	<loc>https://the-dev-journal.vercel.app/categories/node-js</loc>
+	<lastmod>2025-03-15T22:46:33+01:00</lastmod>
+	<priority>0.8</priority>
+</url>
+<url>
+	<loc>https://the-dev-journal.vercel.app/categories/typescript</loc>
+	<lastmod>2025-03-15T22:46:33+01:00</lastmod>
+	<priority>0.8</priority>
+</url>
+<url>
+	<loc>https://the-dev-journal.vercel.app/posts/node-js-now-has-native-typescript-support</loc>
+	<lastmod>2025-03-15T22:46:33+01:00</lastmod>
+	<priority>0.8</priority>
+</url>
+<url>
+	<loc>https://the-dev-journal.vercel.app/become-author</loc>
+	<lastmod>2025-03-15T22:46:33+01:00</lastmod>
+	<priority>1.0</priority>
+</url>
+<url>
+	<loc>https://the-dev-journal.vercel.app/privacy</loc>
+	<lastmod>2025-03-15T22:46:33+01:00</lastmod>
+	<priority>1.0</priority>
+</url>
+<url>
+	<loc>https://the-dev-journal.vercel.app/terms</loc>
+	<lastmod>2025-03-15T22:46:33+01:00</lastmod>
+	<priority>1.0</priority>
+</url>
+<url>
+	<loc>https://the-dev-journal.vercel.app/contact</loc>
+	<lastmod>2025-03-15T22:46:33+01:00</lastmod>
+	<priority>1.0</priority>
+</url>
+<url>
+	<loc>https://the-dev-journal.vercel.app/categories/discover</loc>
+	<lastmod>2025-03-15T22:46:35+01:00</lastmod>
+	<priority>0.8</priority>
+</url>
+<url>
+	<loc>https://the-dev-journal.vercel.app/categories/web-development</loc>
+	<lastmod>2025-03-15T22:46:35+01:00</lastmod>
+	<priority>0.8</priority>
+</url>
+<url>
+	<loc>https://the-dev-journal.vercel.app/categories/computer-science</loc>
+	<lastmod>2025-03-15T22:46:35+01:00</lastmod>
+	<priority>0.8</priority>
+</url>
+<url>
+	<loc>https://the-dev-journal.vercel.app/categories/technology</loc>
+	<lastmod>2025-03-15T22:46:35+01:00</lastmod>
+	<priority>0.8</priority>
+</url>
+</urlset>
