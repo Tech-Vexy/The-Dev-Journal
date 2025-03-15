@@ -1,66 +1,52 @@
-import { promises as fs } from "fs"
-import path from "path"
-import { v4 as uuidv4 } from "uuid"
-
+import { kv } from "@vercel/kv"
 export type Comment = {
   id: string
   postSlug: string
-  authorName: string
+  name: string
   content: string
   createdAt: string
 }
 
-const COMMENTS_DIR = path.join(process.cwd(), "data")
-const COMMENTS_FILE = path.join(COMMENTS_DIR, "comments.json")
-
-// Ensure the data directory exists
-async function ensureDataDirectory() {
-  try {
-    await fs.access(COMMENTS_DIR)
-  } catch {
-    await fs.mkdir(COMMENTS_DIR, { recursive: true })
-  }
-}
-
-// Initialize comments file if it doesn't exist
-async function ensureCommentsFile() {
-  try {
-    await fs.access(COMMENTS_FILE)
-  } catch {
-    await fs.writeFile(COMMENTS_FILE, "[]")
-  }
-}
+// Key prefix for comments in KV store
+const COMMENTS_KEY_PREFIX = "comments:"
 
 export async function getComments(postSlug: string): Promise<Comment[]> {
-  await ensureDataDirectory()
-  await ensureCommentsFile()
+  try {
+    // Get comments for the specific post
+    const comments = (await kv.get<Comment[]>(`${COMMENTS_KEY_PREFIX}${postSlug}`)) || []
 
-  const commentsData = await fs.readFile(COMMENTS_FILE, "utf-8")
-  const comments: Comment[] = JSON.parse(commentsData)
-
-  return comments
-    .filter((comment) => comment.postSlug === postSlug)
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    // Sort comments by date (newest first)
+    return comments.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  } catch (error) {
+    console.error("Error getting comments:", error)
+    return []
+  }
 }
 
-export async function addComment(postSlug: string, authorName: string, content: string): Promise<Comment> {
-  await ensureDataDirectory()
-  await ensureCommentsFile()
+export async function addComment(postSlug: string, name: string, content: string): Promise<Comment> {
+  try {
+    // Get existing comments
+    const comments = await getComments(postSlug)
 
-  const commentsData = await fs.readFile(COMMENTS_FILE, "utf-8")
-  const comments: Comment[] = JSON.parse(commentsData)
+    // Create new comment
+    const newComment: Comment = {
+      id: Math.random().toString(36).substring(2, 9),
+      postSlug,
+      name,
+      content,
+      createdAt: new Date().toISOString(),
+    }
 
-  const newComment: Comment = {
-    id: uuidv4(),
-    postSlug,
-    authorName,
-    content,
-    createdAt: new Date().toISOString(),
+    // Add new comment to the list
+    const updatedComments = [...comments, newComment]
+
+    // Save updated comments list
+    await kv.set(`${COMMENTS_KEY_PREFIX}${postSlug}`, updatedComments)
+
+    return newComment
+  } catch (error) {
+    console.error("Error adding comment:", error)
+    throw new Error("Failed to add comment")
   }
-
-  comments.push(newComment)
-  await fs.writeFile(COMMENTS_FILE, JSON.stringify(comments, null, 2))
-
-  return newComment
 }
 
