@@ -43,6 +43,7 @@
     "@tailwindcss/typography": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
+    "@vercel/kv": "^3.0.0",
     "autoprefixer": "^10.4.20",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
