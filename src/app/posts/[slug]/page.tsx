@@ -37,7 +37,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
       ],
       publishedTime: post.date,
       authors: [post.author.name],
-      tags: post.categories?.map((category) => category.name) || [],
+      tags: post.categories?.map((category: { name: any }) => category.name) || [],
     },
     twitter: {
       card: "summary_large_image",

@@ -5,7 +5,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const posts = await getAllPosts()
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
 
-    const postUrls = posts.map((post) => ({
+    const postUrls = posts.map((post: { slug: any; date: string | number | Date }) => ({
         url: `${siteUrl}/posts/${post.slug}`,
         lastModified: new Date(post.date),
     }))

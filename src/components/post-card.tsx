@@ -105,11 +105,11 @@ export default function PostCard({
         )}>
           <div className="flex-1 space-y-3">
             <h3 className={cn(
-              "font-bold line-clamp-2 group-hover:text-primary transition-colors",
+              "font-bold line-clamp-2 group-hover:text-primary text-fuchsia-950",
               isFeatured && "text-2xl md:text-3xl",
               isCompact ? "text-base" : "text-xl"
             )}>
-              <Link href={postUrl} className="focus:outline-none">
+              <Link href={postUrl} className="focus:outline-none ">
                 {post.title}
               </Link>
             </h3>

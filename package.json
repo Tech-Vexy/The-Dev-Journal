@@ -51,7 +51,7 @@
     "datocms-structured-text-to-html-string": "latest",
     "datocms-structured-text-utils": "latest",
     "embla-carousel-react": "8.5.1",
-    "fs": "latest",
+    "fs": "^0.0.1-security",
     "graphql": "latest",
     "graphql-request": "latest",
     "input-otp": "1.4.1",

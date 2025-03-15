@@ -1,7 +1,11 @@
 import { format } from "date-fns"
-import type { Comment } from "@/types/post"
+import type { Comment } from "@/lib/comments"
 
-export default function CommentsList({ comments }: { comments: Comment[] }) {
+interface CommentsListProps {
+  comments: Comment[]
+}
+
+export default function CommentsList({ comments }: CommentsListProps) {
   if (!comments || comments.length === 0) {
     return <div className="text-center text-muted-foreground py-6">No comments yet. Be the first to comment!</div>
   }

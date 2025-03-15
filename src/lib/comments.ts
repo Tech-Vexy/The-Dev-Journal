@@ -1,23 +1,24 @@
 import { promises as fs } from "fs"
 import path from "path"
+import { v4 as uuidv4 } from "uuid"
 
 export type Comment = {
   id: string
   postSlug: string
-  name: string
+  authorName: string
   content: string
   createdAt: string
 }
 
-const COMMENTS_FILE = path.join(process.cwd(), "data", "comments.json")
+const COMMENTS_DIR = path.join(process.cwd(), "data")
+const COMMENTS_FILE = path.join(COMMENTS_DIR, "comments.json")
 
 // Ensure the data directory exists
 async function ensureDataDirectory() {
-  const dataDir = path.join(process.cwd(), "data")
   try {
-    await fs.access(dataDir)
+    await fs.access(COMMENTS_DIR)
   } catch {
-    await fs.mkdir(dataDir)
+    await fs.mkdir(COMMENTS_DIR, { recursive: true })
   }
 }
 
@@ -42,7 +43,7 @@ export async function getComments(postSlug: string): Promise<Comment[]> {
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 }
 
-export async function addComment(postSlug: string, name: string, content: string): Promise<Comment> {
+export async function addComment(postSlug: string, authorName: string, content: string): Promise<Comment> {
   await ensureDataDirectory()
   await ensureCommentsFile()
 
@@ -50,9 +51,9 @@ export async function addComment(postSlug: string, name: string, content: string
   const comments: Comment[] = JSON.parse(commentsData)
 
   const newComment: Comment = {
-    id: Math.random().toString(36).substring(2, 9),
+    id: uuidv4(),
     postSlug,
-    name,
+    authorName,
     content,
     createdAt: new Date().toISOString(),
   }

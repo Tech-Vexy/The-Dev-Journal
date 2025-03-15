@@ -67,7 +67,7 @@ export default async function Home() {
 
         {/* Featured Post */}
         {featuredPost && (
-          <section className="container mx-auto px-6">
+          <section className="container mx-auto px-6 ">
             <div className="mb-10 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="flex items-center justify-center h-10 w-10 rounded-full bg-primary/10">

@@ -68,10 +68,10 @@ export const getAllPosts = cache(async () => {
 
   try {
     const client = getClient()
-    const data = await client.request(query)
+    const data = await client.request<{ allPosts: any[] }>(query)
 
     // Handle case where categories field doesn't exist in DatoCMS schema
-    if (data.allPosts) {
+    if (data && data.allPosts) {
       data.allPosts = data.allPosts.map((post) => {
         if (!post.categories) {
           post.categories = []
@@ -133,7 +133,6 @@ export const getPostBySlug = cache(async (slug: string) => {
               height
             }
           }
-            
         }
       }
       coverImage {
@@ -165,10 +164,10 @@ export const getPostBySlug = cache(async (slug: string) => {
 
   try {
     const client = getClient()
-    const data = await client.request(query, { slug })
+    const data = await client.request<{ post: any }>(query, { slug })
 
     // Handle case where categories field doesn't exist in DatoCMS schema
-    if (data.post) {
+    if (data && data.post) {
       if (!data.post.categories) {
         data.post.categories = []
       }
@@ -193,142 +192,6 @@ export const getPostBySlug = cache(async (slug: string) => {
     return null
   }
 })
-
-// New function to add a comment to a post
-export async function addComment(postId: string, authorName: string, content: string) {
-  if (!API_TOKEN) {
-    console.error("DATOCMS_API_TOKEN is not set")
-    return null
-  }
-
-  const mutation = `
-    mutation CreateComment($postId: ItemId!, $authorName: String!, $content: String!) {
-      createComment(data: {
-        post: { connect: { id: $postId } }
-        authorName: $authorName
-        content: $content
-      }) {
-        id
-        authorName
-        content
-        createdAt
-      }
-    }
-  `
-
-  try {
-    const client = new GraphQLClient(API_URL, {
-      headers: {
-        Authorization: `Bearer ${API_TOKEN}`,
-        "X-Include-Drafts": "true",
-      },
-    })
-
-    const data = await client.request(mutation, { postId, authorName, content })
-    return data.createComment
-  } catch (error) {
-    console.error("Error adding comment:", error)
-    return null
-  }
-}
-
-// New function to add or update a reaction to a post
-export async function updateReaction(postId: string, reactionName: string, increment = true) {
-  if (!API_TOKEN) {
-    console.error("DATOCMS_API_TOKEN is not set")
-    return null
-  }
-
-  // First, check if the reaction already exists
-  const query = `
-  query GetReaction($postId: ItemId!) {
-    allReactions(filter: { post: { eq: $postId } }) {
-      id
-      name
-      count
-    }
-  }
-`
-
-  try {
-    const client = new GraphQLClient(API_URL, {
-      headers: {
-        Authorization: `Bearer ${API_TOKEN}`,
-        "X-Include-Drafts": "true",
-      },
-    })
-
-    const data = await client.request(query, { postId })
-
-    if (data.allReactions && data.allReactions.length > 0) {
-      // Find the reaction with the matching name
-      const reaction = data.allReactions.find((r) => r.name === reactionName)
-
-      if (reaction) {
-        // Update existing reaction
-        const newCount = increment ? reaction.count + 1 : Math.max(0, reaction.count - 1)
-
-        const updateMutation = `
-          mutation UpdateReaction($id: ItemId!, $count: IntType!) {
-            updateReaction(input: { id: $id, count: $count }) {
-              id
-              name
-              count
-            }
-          }
-        `
-
-        const updateData = await client.request(updateMutation, {
-          id: reaction.id,
-          count: newCount,
-        })
-
-        return updateData.updateReaction
-      } else if (increment) {
-        // Create new reaction if incrementing
-        const createMutation = `
-          mutation CreateReaction($postId: ItemId!, $name: String!) {
-            createReaction(data: {
-              post: { connect: { id: $postId } }
-              name: $name
-              count: 1
-            }) {
-              id
-              name
-              count
-            }
-          }
-        `
-
-        const createData = await client.request(createMutation, { postId, name: reactionName })
-        return createData.createReaction
-      }
-    } else if (increment) {
-      // Create new reaction if incrementing
-      const createMutation = `
-        mutation CreateReaction($postId: ItemId!, $name: String!) {
-          createReaction(data: {
-            post: { connect: { id: $postId } }
-            name: $name
-            count: 1
-          }) {
-            id
-            name
-            count
-          }
-        }
-      `
-
-      const createData = await client.request(createMutation, { postId, name: reactionName })
-      return createData.createReaction
-    }
-
-    return null
-  } catch (error) {
-    console.error("Error updating reaction:", error)
-    return null
-  }
-}
 
 export const getAllCategories = cache(async () => {
   // Only use mock data in development when API token is missing
@@ -356,13 +219,13 @@ export const getAllCategories = cache(async () => {
 
   try {
     const client = getClient()
-    const data = await client.request(query)
+    const data = await client.request<{ allCategories: any[] }>(query)
     return data.allCategories || []
   } catch (error) {
     console.error("Error fetching categories:", error)
 
     // If the error is because the categories model doesn't exist
-    if (error.message && error.message.includes("allCategories")) {
+    if (error instanceof Error && error.message.includes("allCategories")) {
       console.warn("The 'Category' model might not exist in your DatoCMS schema")
       return []
     }
